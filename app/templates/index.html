@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>🔍 AI Medical Chatbot</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f9fbfc;
+            --text-color: #333;
+            --user-color: #e0f0ff;
+            --bot-color: #f4f6f8;
+            --accent: #0077cc;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 2rem;
+            color: var(--text-color);
+        }
+
+        /* Floating Chat Box */
+        #chat-box-toggle {
+            display: none;
+            position: fixed;
+            bottom: 6rem;
+            right: 2rem;
+            width: 25%;
+            min-width: 280px;
+            max-width: 360px;
+            height: 60vh;
+            background-color: #ffffff;
+            border: 1px solid #ccc;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #chat-box-toggle h2 {
+            margin: 0;
+            padding: 1rem;
+            font-size: 1.2rem;
+            color: var(--accent);
+            border-bottom: 1px solid #eee;
+            background-color: #f9fbfc;
+        }
+
+        .chat-scroll {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+        }
+
+        .message {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+        }
+
+        .user {
+            background-color: var(--user-color);
+            justify-content: flex-end;
+            text-align: right;
+        }
+
+        .assistant {
+            background-color: var(--bot-color);
+            justify-content: flex-start;
+            text-align: left;
+        }
+
+        .avatar {
+            font-size: 1.2rem;
+            margin-top: 0.2rem;
+        }
+
+        .content {
+            flex: 1;
+            font-size: 0.95rem;
+        }
+
+        .chat-input {
+            padding: 1rem;
+            border-top: 1px solid #eee;
+            background-color: #f9fbfc;
+        }
+
+        .chat-input textarea {
+            width: 100%;
+            height: 3rem;
+            padding: 0.5rem;
+            font-size: 0.95rem;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            resize: none;
+        }
+
+        .chat-input button {
+            margin-top: 0.5rem;
+            width: 100%;
+            padding: 0.6rem;
+            font-size: 1rem;
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .chat-input button:hover {
+            background-color: #005fa3;
+        }
+
+        .fab {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 3.5rem;
+            height: 3.5rem;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            z-index: 1000;
+        }
+    </style>
+    <script>
+        function toggleChatBox() {
+            const box = document.getElementById('chat-box-toggle');
+            box.style.display = (box.style.display === 'none' || box.style.display === '') ? 'flex' : 'none';
+        }
+    </script>
+</head>
+<body>
+
+    <!-- Floating Chat Box -->
+    <div id="chat-box-toggle">
+        <h2>💬 AI Medical Assistant</h2>
+
+        <div class="chat-scroll">
+            {% for msg in messages %}
+                <div class="message {{ msg.role }}">
+                    <div class="avatar">
+                        {% if msg.role == 'user' %}👤{% else %}🤖{% endif %}
+                    </div>
+                    <div class="content">
+                        <strong>{{ msg.role|capitalize }}:</strong><br />
+                        {{ msg.content | safe | nl2br }}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="chat-input">
+            <form method="post" action="{{ url_for('index') }}">
+                <textarea name="prompt" placeholder="Type your question..." required></textarea>
+                <button type="submit">Send</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Floating Toggle Button -->
+    <button class="fab" onclick="toggleChatBox()">💬</button>
+
+</body>
+</html>
