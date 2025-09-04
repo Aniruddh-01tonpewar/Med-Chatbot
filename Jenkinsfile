@@ -6,6 +6,8 @@ pipeline {
         ECR_REPO = 'my-repo'
         IMAGE_TAG = 'latest'
         SERVICE_NAME = 'llmops-medical-service'
+        AWS_ACCOUNT_ID = '077532334118'
+        REPOSITORY_URI = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}"
     }
 
     stages {
@@ -49,14 +51,13 @@ pipeline {
                         def ecrUrl = "${accountId}.dkr.ecr.${env.AWS_REGION}.amazonaws.com/${env.ECR_REPO}"
                         def imageFullTag = "${ecrUrl}:${IMAGE_TAG}"
 
-                        echo "Triggering deployment to AWS App Runner..."
+                        echo "Triggering deployment to AWS EC2..."
 
-                        sh """
-                        SERVICE_ARN=\$(aws apprunner list-services --query "ServiceSummaryList[?ServiceName=='${SERVICE_NAME}'].ServiceArn" --output text --region ${AWS_REGION})
-                        echo "Found App Runner Service ARN: \$SERVICE_ARN"
-
-                        aws apprunner start-deployment --service-arn \$SERVICE_ARN --region ${AWS_REGION}
-                        """
+                        
+                        sh "docker stop my-app || true" // Stop if running
+                        sh "docker rm my-app || true" // Remove if exists
+                        sh "docker pull ${REPOSITORY_URI}:${IMAGE_TAG}"
+                        sh "docker run -d --name my-app -p 80:80 ${REPOSITORY_URI}:${IMAGE_TAG}"
                     }
                 }
             }
