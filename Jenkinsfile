@@ -2,8 +2,6 @@ pipeline {
     agent any
 
     environment {
-        AWS_ACCESS_KEY_ID     = credentials('aws-ec2-credentials')
-        AWS_SECRET_ACCESS_KEY = credentials('aws-ec2-credentials')
         AWS_REGION            = "us-east-1"
         AWS_ACCOUNT_ID        = "077532334118"
         ECR_REPO_NAME   ="my-repo"
@@ -48,6 +46,6 @@ pipeline {
                 docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME:latest
                 '''
             }
-        }
-    }
+            }
+        }
 }
