@@ -2,65 +2,54 @@ pipeline {
     agent any
 
     environment {
-        AWS_REGION = 'us-east-1'
-        ECR_REPO = 'my-repo'
-        IMAGE_TAG = 'latest'
-        SERVICE_NAME = 'llmops-medical-service'
-        AWS_ACCOUNT_ID = '077532334118'
-        REPOSITORY_URI = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}"
+        AWS_ACCESS_KEY_ID     = credentials('aws-ec2-credentials')
+        AWS_SECRET_ACCESS_KEY = credentials('aws-ec2-credentials')
+        AWS_REGION            = "us-east-1"
+        AWS_ACCOUNT_ID        = "077532334118"
+        ECR_REPO_NAME         = "my-repo"
     }
 
     stages {
-        stage('Clone GitHub Repo') {
+        stage('Checkout from GitHub') {
             steps {
-                script {
-                    echo 'Cloning GitHub repo to Jenkins...'
-                    
-                    checkout scmGit(branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[credentialsId: 'github-token', url: 'https://github.com/Aniruddh-01tonpewar/Med-Chatbot.git']])
-                }
+                git branch: 'main',
+                    url: 'https://github.com/Aniruddh-01tonpewar/Med-Chatbot.git'
             }
         }
 
-        stage('Build, Scan, and Push Docker Image to ECR') {
+        stage('Build Docker Image') {
             steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-token']]) {
-                    script {
-                        def accountId = sh(script: "aws sts get-caller-identity --query Account --output text", returnStdout: true).trim()
-                        def ecrUrl = "${accountId}.dkr.ecr.${env.AWS_REGION}.amazonaws.com/${env.ECR_REPO}"
-                        def imageFullTag = "${ecrUrl}:${IMAGE_TAG}"
-
-                        sh """
-                        aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ecrUrl}
-                        docker build -t ${env.ECR_REPO}:${IMAGE_TAG} .
-                        trivy image --severity HIGH,CRITICAL --format json -o trivy-report.json ${env.ECR_REPO}:${IMAGE_TAG} || true
-                        docker tag ${env.ECR_REPO}:${IMAGE_TAG} ${imageFullTag}
-                        docker push ${imageFullTag}
-                        """
-
-                        archiveArtifacts artifacts: 'trivy-report.json', allowEmptyArchive: true
-                    }
-                }
+                sh '''
+                echo "Building Docker image..."
+                docker build -t $ECR_REPO_NAME:latest .
+                '''
             }
         }
 
-         stage('Deploy to AWS App Runner') {
+        stage('Login to AWS ECR') {
             steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-token']]) {
-                    script {
-                        def accountId = sh(script: "aws sts get-caller-identity --query Account --output text", returnStdout: true).trim()
-                        def ecrUrl = "${accountId}.dkr.ecr.${env.AWS_REGION}.amazonaws.com/${env.ECR_REPO}"
-                        def imageFullTag = "${ecrUrl}:${IMAGE_TAG}"
+                sh '''
+                echo "Logging in to Amazon ECR..."
+                aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+                aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+                aws configure set default.region $AWS_REGION
 
-                        echo "Triggering deployment to AWS EC2..."
-
-                        
-                        sh "docker stop my-app || true" // Stop if running
-                        sh "docker rm my-app || true" // Remove if exists
-                        sh "docker pull ${REPOSITORY_URI}:${IMAGE_TAG}"
-                        sh "docker run -d --name my-app -p 80:80 ${REPOSITORY_URI}:${IMAGE_TAG}"
-                    }
-                }
+                aws ecr get-login-password --region $AWS_REGION | \
+                docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+                '''
             }
         }
-    }
+
+        stage('Tag & Push to ECR') {
+            steps {
+                sh '''
+                echo "Tagging image..."
+                docker tag $ECR_REPO_NAME:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME:latest
+
+                echo "Pushing image to ECR..."
+                docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME:latest
+                '''
+            }
+        }
+    }
 }
