@@ -2,9 +2,9 @@ pipeline {
     agent any
 
     environment {
-        AWS_REGION            = "us-east-1"
-        AWS_ACCOUNT_ID        = "077532334118"
-        ECR_REPO_NAME   ="my-repo"
+        AWS_REGION      = "us-east-1"
+        AWS_ACCOUNT_ID  = "077532334118"
+        ECR_REPO_NAME   = "my-repo"
     }
 
     stages {
@@ -19,6 +19,12 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 sh 'docker build -t $ECR_REPO_NAME:latest .'
+            }
+        }
+
+        stage('Security Scan') {
+            steps {
+                sh 'trivy image $ECR_REPO_NAME:latest'
             }
         }
 
@@ -46,6 +52,6 @@ pipeline {
                 docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME:latest
                 '''
             }
-            }
         }
+    }
 }
