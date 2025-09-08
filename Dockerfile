@@ -3,7 +3,9 @@ FROM python:3.10-slim
 
 ## Essential environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    DEBIAN_FRONTEND=noninteractive
+
 
 ## Work directory inside the docker container
 WORKDIR /app
